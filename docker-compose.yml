@@ -1,19 +1,19 @@
 services:
-  postgresdb:
+  sutradhar-postgres:
     image: postgres:15
     restart: unless-stopped
-    container_name: postgresdb
+    container_name: sutradhar-postgres
 
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: dev
+      POSTGRES_DB: sutradhar
 
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - sutradhar_pg_data:/var/lib/postgresql/data
 
 volumes:
-  pg_data:
+  sutradhar_pg_data:
