@@ -1,99 +1,87 @@
-import { trpc } from "~/trpc/client"
+import { trpc } from "~/trpc/client";
 
 export const useLogin = () => {
+  const utils = trpc.useUtils()
+  const {
 
-    const utils = trpc.useUtils();
-    const {
-        mutateAsync: getGoogleAuthUrlAsync,
-        mutate: getGoogleAuthUrl,
-        isError,
-        error,
-        status,
-        isSuccess,
-        isPending
-
-
-    } = trpc.auth.getGoogleAuthUrl.useMutation({
-        onSuccess: async () => {
-            await utils.auth.isUserLoggedIn.invalidate()
-        }
-    })
-
-    return {
-        getGoogleAuthUrlAsync,
-        getGoogleAuthUrl,
-        isError,
-        error,
-        status,
-        isSuccess,
-        isPending
+    mutateAsync: getGoogleAuthUrlAsync,
+    mutate: getGoogleAuthUrl,
+    error,
+    isError,
+    isSuccess,
+    status,
+    
+    
+  } = trpc.auth.getGoogleAuthUrl.useMutation({
+    onSuccess: async () => {
+      await utils.auth.isUserLoggedIn.invalidate()
     }
-}
+});
+ 
+  
+  return {
+    getGoogleAuthUrlAsync,
+    getGoogleAuthUrl,
+    error,
+    isError,
+    isSuccess,
+    status,
+    
+  };
+};
 
 export const useIsUserLoggedIn = () => {
-    const {
-        data,
-        isError,
-        error,
-        status,
-        isLoading,
-        isSuccess,
-    } = trpc.auth.isUserLoggedIn.useQuery()
-    const isUserLoggedIn = Boolean(data?.id);
+  const{
+    data,
+    error,
+    isError,
+    isSuccess,
+    status,
+    isLoading
+    
+  } = trpc.auth.isUserLoggedIn.useQuery()
 
-    return {
-        isUserLoggedIn,
-        isError,
-        error,
-        isLoading,
-        status,
-        isSuccess
-    }
-}
+  const isUserLoggedIn = Boolean(data?.id);
 
-
-export const useGetUserById = () => {
-    const {
-        data,
-        isError,
-        error,
-        status,
-        isSuccess,
-    } = trpc.auth.getUserInfoById.useQuery()
-
-    return {
-        data,
-        isError,
-        error,
-        status,
-        isSuccess
-    }
+  return{
+    isUserLoggedIn,
+    error,
+    isSuccess,
+    isError,
+    status,
+    isLoading
+  }
 }
 
 export const useLogout = () => {
-    const utils = trpc.useUtils();
-    const {
-        mutateAsync: logoutAsync,
-        mutate: logout,
-        isError,
-        error,
-        status,
-        isSuccess,
+  const utils = trpc.useUtils()
+  const {
+    mutateAsync: logoutAsync,
+    mutate: logout,
+    error,
+    isSuccess,
+    isError,
+    status,
+    
+  } = trpc.auth.logout.useMutation({
+    onSuccess: async () => {
+      await utils.auth.isUserLoggedIn.invalidate()
+    }
+  })
 
+  return {
+    logoutAsync,
+    logout,
+    error,
+    isSuccess,
+    isError,
+    status
+  }
+}
+export const useUser = () => {
+    const {data: user, error, isFetched, isFetching, isLoading, status} = trpc.auth.getUserById.useQuery()
 
-
-    } = trpc.auth.logout.useMutation({
-        onSuccess: async () => {
-            await utils.auth.isUserLoggedIn.invalidate()
-        }
-    })
-
-    return {
-        logoutAsync,
-        logout,
-        isError,
-        error,
-        status,
-        isSuccess
+    return { 
+        user, error, isFetched, isFetching, isLoading, status
     }
 }

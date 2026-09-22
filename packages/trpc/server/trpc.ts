@@ -15,18 +15,19 @@ export const router = tRPCContext.router;
 export const publicProcedure = tRPCContext.procedure;
 
 export const authenticatedProcedure = tRPCContext.procedure.use(async options => {
-  const {ctx} = options;
 
-  const userToken = getAuthenticationCookie(ctx);
+  const { ctx } = options
 
-  if(!userToken || userToken.length === 0) throw new Error("User is not LoggedIn")
-  
-  const {id} = await userService.isUserLoggedIn(userToken);
+  const userToken = getAuthenticationCookie(ctx)
+  // console.log(userToken)
+  if (!userToken) throw new Error(`User is not LoggedIn`)
 
+const {id} = await userService.isUserIsLoggedIn(userToken);
   return options.next({
     ctx:{
-      ...ctx,
-      user: {id}
+    ...ctx,
+    user: {id}
     }
   })
-})
+
+});

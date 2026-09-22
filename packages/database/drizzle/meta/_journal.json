@@ -8,6 +8,27 @@
       "when": 1789197522013,
       "tag": "0000_zippy_quentin_quire",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789495072104,
+      "tag": "0001_daffy_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789667872120,
+      "tag": "0002_premium_metal_master",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789924166134,
+      "tag": "0003_huge_madripoor",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,7 @@ const ONE_DAY = 24 * ONE_HOUR;
 const ONE_MONTH = 30 * ONE_DAY;
 const ONE_YEAR = 12 * ONE_MONTH;
 
-const defaultCookieOption : CookieOptions ={
+const defalutCookieOption : CookieOptions ={
     path: "/",
     httpOnly: true,
     secure: false,
@@ -20,7 +20,7 @@ export function createCookieFactory(res: CreateExpressContextOptions["res"]){
     return function createCookie(
         name: string,
         value: string,
-        opts: CookieOptions = defaultCookieOption
+        opts: CookieOptions = defalutCookieOption
     ){
         res.cookie(name, value, opts)
     }
@@ -49,7 +49,7 @@ const AUTHENTICATION_COOKIE_NAME = "authentication-token"
 
 export function setAuthenticationCookie(ctx: TRPCContext, accessToken : string){
     ctx.createCookie(AUTHENTICATION_COOKIE_NAME, accessToken, {
-        ...defaultCookieOption,
+        ...defalutCookieOption,
         sameSite: "lax",
     })
 }

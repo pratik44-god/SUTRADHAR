@@ -1,3 +1,36 @@
+// import type { Metadata } from "next";
+// import localFont from "next/font/local";
+// import "./globals.css";
+// import { GlobalProviders } from "~/providers/global";
+
+// const geistSans = localFont({
+//   src: "./fonts/GeistVF.woff",
+//   variable: "--font-geist-sans",
+// });
+// const geistMono = localFont({
+//   src: "./fonts/GeistMonoVF.woff",
+//   variable: "--font-geist-mono",
+// });
+
+// export const metadata: Metadata = {
+//   title: "Sutradhar",
+//   description: "Media Forwarding",
+// };
+
+// export default function RootLayout({
+//   children,
+// }: Readonly<{
+//   children: React.ReactNode;
+// }>) {
+//   return (
+//     <html lang="en" className="dark">
+//       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+//         <GlobalProviders>{children}</GlobalProviders>
+//       </body>
+//     </html>
+//   );
+// }
+
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -7,6 +40,7 @@ const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
 });
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -14,7 +48,8 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Sutradhar",
-  description: "Media Forwarding",
+  description:
+    "A modern creative workspace for capturing, organizing and transforming ideas into meaningful stories.",
 };
 
 export default function RootLayout({
@@ -23,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <GlobalProviders>{children}</GlobalProviders>
       </body>
