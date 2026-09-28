@@ -177,6 +177,19 @@ class UserService {
       profileImageUrl: payload.picture,
     });
   }
+
+  public async getUserByEmail(email: string) {
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.email, email));
+
+    if (!user || user.length === 0) {
+      throw new Error(`User with email: ${email} does not exists`);
+    }
+
+    return user[0]!;
+  }
 }
 
 export default UserService;

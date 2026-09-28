@@ -1,0 +1,1 @@
+ALTER TABLE "shares" ADD COLUMN "is_public" boolean DEFAULT false;

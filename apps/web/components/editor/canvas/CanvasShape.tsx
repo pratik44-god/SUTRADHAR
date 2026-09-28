@@ -1,7 +1,9 @@
+
 "use client";
 
 import type Konva from "konva";
-import { Arrow, Circle, Ellipse, Group, Line, Path, Rect, Text } from "react-konva";
+import { useEffect, useRef, useState } from "react";
+import { Arrow, Circle, Ellipse, Group, Line, Path, Rect, Text, Transformer } from "react-konva";
 
 import type { CanvasField, CanvasShape, Point } from "./canvas-types";
 import { DEFAULT_FILL, DEFAULT_STROKE } from "./canvas-types";
@@ -34,6 +36,8 @@ type CanvasShapeProps = {
   /** Current stage scale, used to keep the delete button a constant size. */
   zoom?: number;
   onDragEnd: (id: string, point: Point) => void;
+  onResizeEnd?: (id: string, patch: Partial<CanvasShape>) => void;
+  onEndpointDragEnd?: (id: string, start: Point, end: Point) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
 };
@@ -64,13 +68,16 @@ function cornerRadiusFor(type: CanvasShape["type"], width: number, height: numbe
 
   switch (type) {
     case "roundedRectangle":
-      radius = 12;
+      radius = 14;
       break;
     case "process":
     case "cache":
       radius = 5;
       break;
     case "api":
+      radius = 8;
+      break;
+    case "rectangle":
       radius = 8;
       break;
     case "startEnd":
@@ -92,6 +99,8 @@ export default function CanvasShapeRenderer({
   hideLabel = false,
   zoom = 1,
   onDragEnd,
+  onResizeEnd,
+  onEndpointDragEnd,
   onEdit,
   onDelete,
 }: CanvasShapeProps) {
@@ -103,6 +112,12 @@ export default function CanvasShapeRenderer({
   const { width, height } = getShapeSize(shape);
   const bounds = getLocalBounds(shape);
   const text = shape.text ?? "";
+  const groupRef = useRef<Konva.Group | null>(null);
+  const transformerRef = useRef<Konva.Transformer | null>(null);
+  const [endpointPreview, setEndpointPreview] = useState<{ start: Point; end: Point } | null>(null);
+
+  const isConnector = shape.type === "arrow" || shape.type === "line" || shape.type === "message";
+  const canResize = !isConnector && shape.type !== "draw" && shape.type !== "text" && selected && interactive && !ghost && !hideLabel;
 
   /*
    * Stroke style. `dash` is undefined when no style was chosen (shapes such as
@@ -118,11 +133,15 @@ export default function CanvasShapeRenderer({
   const connectorCap = shape.strokeStyle === "dashed" ? "butt" : "round";
 
   // Main outline follows the chosen style; inner details always stay solid.
-  const paint = { stroke, strokeWidth, fill, ...PERF, ...dashProps };
-  const outline = { stroke, strokeWidth, ...PERF };
+  const paint = { stroke, strokeWidth, fill, strokeScaleEnabled: false, ...PERF, ...dashProps };
+  const outline = { stroke, strokeWidth, strokeScaleEnabled: false, ...PERF };
   const connectorStroke = { ...outline, ...dashProps };
 
   const handleDragEnd = (event: Konva.KonvaEventObject<DragEvent>) => {
+    // Konva drag events bubble: dragging a connector endpoint or a resize
+    // handle would otherwise be treated as moving the whole shape.
+    if (event.target !== event.currentTarget) return;
+
     onDragEnd(shape.id, { x: event.target.x(), y: event.target.y() });
   };
 
@@ -151,6 +170,44 @@ export default function CanvasShapeRenderer({
     node.fill(hovering ? DELETE_FILL_HOVER : DELETE_FILL);
     node.getLayer()?.batchDraw();
   };
+
+  useEffect(() => {
+    if (!canResize || !groupRef.current || !transformerRef.current) {
+      transformerRef.current?.nodes([]);
+      return;
+    }
+
+    transformerRef.current.nodes([groupRef.current]);
+    transformerRef.current.getLayer()?.batchDraw();
+  }, [canResize, width, height]);
+
+  useEffect(() => {
+    setEndpointPreview(null);
+  }, [shape.id, shape.x, shape.y, shape.x2, shape.y2]);
+
+  const handleTransformEnd = () => {
+    const node = groupRef.current;
+    if (!node || !onResizeEnd) return;
+
+    const scaleX = Math.max(0.2, node.scaleX());
+    const scaleY = Math.max(0.2, node.scaleY());
+    const nextWidth = Math.max(40, width * scaleX);
+    const nextHeight = Math.max(30, height * scaleY);
+
+    node.scaleX(1);
+    node.scaleY(1);
+
+    onResizeEnd(shape.id, {
+      x: node.x(),
+      y: node.y(),
+      width: nextWidth,
+      height: nextHeight,
+    });
+  };
+
+  const connectorPoints = endpointPreview
+    ? [endpointPreview.start.x, endpointPreview.start.y, endpointPreview.end.x, endpointPreview.end.y]
+    : [0, 0, (shape.x2 ?? shape.x) - shape.x, (shape.y2 ?? shape.y) - shape.y];
 
   /* ------------------------------------------------------------------ */
   /* Body                                                               */
@@ -496,7 +553,7 @@ export default function CanvasShapeRenderer({
               {...dashProps}
               dash={dash ?? [8, 6]}
               points={[width / 2, LIFELINE_HEADER_HEIGHT, width / 2, height]}
-              hitStrokeWidth={14}
+              hitStrokeWidth={14 / Math.max(zoom, 0.01)}
             />
           </>
         );
@@ -504,9 +561,7 @@ export default function CanvasShapeRenderer({
       case "line":
       case "arrow":
       case "message": {
-        const dx = (shape.x2 ?? shape.x) - shape.x;
-        const dy = (shape.y2 ?? shape.y) - shape.y;
-        const points = [0, 0, dx, dy];
+        const points = connectorPoints;
 
         if (shape.type === "line") {
           return (
@@ -514,12 +569,12 @@ export default function CanvasShapeRenderer({
               {...connectorStroke}
               points={points}
               lineCap={connectorCap}
-              hitStrokeWidth={14}
+              hitStrokeWidth={14 / Math.max(zoom, 0.01)}
             />
           );
         }
 
-        const pointer = shape.type === "arrow" ? 10 : 8;
+        const pointer = shape.type === "arrow" ? 12 : 9;
 
         // Konva keeps the arrow head solid even when the shaft is dashed.
         return (
@@ -530,7 +585,7 @@ export default function CanvasShapeRenderer({
             pointerLength={pointer}
             pointerWidth={pointer}
             fill={stroke}
-            hitStrokeWidth={14}
+            hitStrokeWidth={14 / Math.max(zoom, 0.01)}
           />
         );
       }
@@ -544,7 +599,7 @@ export default function CanvasShapeRenderer({
             align="center"
             verticalAlign="middle"
             text={hideLabel ? " " : text || "Text"}
-            fontSize={18}
+            fontSize={14}
             fontFamily={FONT}
             fill={stroke}
           />
@@ -592,7 +647,7 @@ export default function CanvasShapeRenderer({
         text={text}
         align={align}
         verticalAlign="middle"
-        fontSize={13}
+        fontSize={14}
         fontStyle={bold ? "bold" : "normal"}
         fontFamily={FONT}
         fill={LABEL_COLOR}
@@ -607,26 +662,87 @@ export default function CanvasShapeRenderer({
   /* ------------------------------------------------------------------ */
 
   return (
-    <Group
-      id={shape.id}
-      x={shape.x}
-      y={shape.y}
-      opacity={ghost ? 0.7 : 1}
-      draggable={interactive}
-      listening={interactive}
-      onDragEnd={handleDragEnd}
-      onDblClick={handleEdit}
-      onDblTap={handleEdit}
-    >
-      {renderBody()}
-      {renderLabel()}
+    <>
+      <Group
+        ref={groupRef}
+        id={shape.id}
+        x={shape.x}
+        y={shape.y}
+        opacity={ghost ? 0.7 : 1}
+        draggable={interactive}
+        listening={interactive}
+        onDragEnd={handleDragEnd}
+        onDblClick={handleEdit}
+        onDblTap={handleEdit}
+      >
+        {renderBody()}
+        {renderLabel()}
+
+        {selected && interactive && !ghost && !hideLabel && isConnector && (
+          <>
+            <Circle
+              x={0}
+              y={0}
+              radius={7 / Math.max(zoom, 0.01)}
+              fill={"#000000"}
+              stroke={SELECTED_STROKE}
+              strokeWidth={2 / Math.max(zoom, 0.01)}
+              draggable
+              onMouseDown={stopEvent}
+              onTouchStart={stopEvent}
+              onDragMove={(event) => {
+                const node = event.target;
+                const start = { x: node.x(), y: node.y() };
+                const end = endpointPreview?.end ?? {
+                  x: (shape.x2 ?? shape.x) - shape.x,
+                  y: (shape.y2 ?? shape.y) - shape.y,
+                };
+                setEndpointPreview({ start, end });
+              }}
+              onDragEnd={(event) => {
+                const start = { x: event.target.x(), y: event.target.y() };
+                const end = endpointPreview?.end ?? {
+                  x: (shape.x2 ?? shape.x) - shape.x,
+                  y: (shape.y2 ?? shape.y) - shape.y,
+                };
+                const worldStart = { x: shape.x + start.x, y: shape.y + start.y };
+                const worldEnd = { x: shape.x + end.x, y: shape.y + end.y };
+                onEndpointDragEnd?.(shape.id, worldStart, worldEnd);
+                setEndpointPreview(null);
+              }}
+            />
+            <Circle
+              x={connectorPoints[2]}
+              y={connectorPoints[3]}
+              radius={7 / Math.max(zoom, 0.01)}
+              fill={"#000000"}
+              stroke={SELECTED_STROKE}
+              strokeWidth={2 / Math.max(zoom, 0.01)}
+              draggable
+              onMouseDown={stopEvent}
+              onTouchStart={stopEvent}
+              onDragMove={(event) => {
+                const end = { x: event.target.x(), y: event.target.y() };
+                setEndpointPreview({ start: endpointPreview?.start ?? { x: 0, y: 0 }, end });
+              }}
+              onDragEnd={(event) => {
+                const end = { x: event.target.x(), y: event.target.y() };
+                const start = endpointPreview?.start ?? { x: 0, y: 0 };
+                const worldStart = { x: shape.x + start.x, y: shape.y + start.y };
+                const worldEnd = { x: shape.x + end.x, y: shape.y + end.y };
+                onEndpointDragEnd?.(shape.id, worldStart, worldEnd);
+                setEndpointPreview(null);
+              }}
+            />
+          </>
+        )}
+
+      </Group>
 
       {showDelete && (
         <Group
-          x={bounds.x + bounds.width + 4 / zoom}
-          y={bounds.y - 4 / zoom}
-          scaleX={1 / zoom}
-          scaleY={1 / zoom}
+          x={shape.x + bounds.x + bounds.width + 4}
+          y={shape.y + bounds.y - 4}
         >
           <Circle
             radius={9}
@@ -656,6 +772,35 @@ export default function CanvasShapeRenderer({
           />
         </Group>
       )}
-    </Group>
+
+      {/*
+       * Transformer must be a SIBLING of the Group it targets, never a
+       * child of it. Konva throws "Konva.Transformer cannot be a child of
+       * the node you are trying to attach" if you nest it inside — which is
+       * exactly what was happening before this was pulled out of the Group.
+       */}
+      {canResize && (
+        <Transformer
+          ref={transformerRef}
+          rotateEnabled={false}
+          flipEnabled={false}
+          keepRatio={false}
+          enabledAnchors={[
+            "top-left", "top-center", "top-right",
+            "middle-left", "middle-right",
+            "bottom-left", "bottom-center", "bottom-right",
+          ]}
+          anchorSize={7}
+          borderStroke={SELECTED_STROKE}
+          borderDash={[5, 4]}
+          boundBoxFunc={(oldBox, newBox) =>
+            newBox.width < 40 || newBox.height < 30 ? oldBox : newBox
+          }
+          onMouseDown={stopEvent}
+          onTouchStart={stopEvent}
+          onTransformEnd={handleTransformEnd}
+        />
+      )}
+    </>
   );
 }

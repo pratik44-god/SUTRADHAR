@@ -155,7 +155,7 @@ class ProjectService {
       !projectDeleteResult ||
       projectDeleteResult.length === 0 ||
       !projectDeleteResult[0]?.id
-    ) {
+    ) { 
       throw new Error(`Project with ID: ${id} does not exist`);
     }
 

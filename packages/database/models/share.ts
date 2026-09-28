@@ -3,6 +3,7 @@ import {
   uuid,
   varchar,
   timestamp,
+  boolean
 } from "drizzle-orm/pg-core";
 
 import { usersTable } from "./user";
@@ -22,6 +23,8 @@ export const sharesTable = pgTable("shares", {
   shareToken: varchar("share_token", { length: 200 })
     .notNull()
     .unique(),
+
+  isPublic: boolean("is_public").default(false),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

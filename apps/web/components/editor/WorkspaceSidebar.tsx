@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import type { CanvasShape, StrokeStyle } from "./canvas/canvas-types";
 import {
@@ -34,17 +34,6 @@ const STYLE_OPTIONS: { value: StrokeStyle; label: string }[] = [
 
 const WEIGHT_OPTIONS = [1, 2, 3, 4] as const;
 
-const SHORTCUTS: { name: string; keys: string[] }[] = [
-  { name: "Pan", keys: ["Space", "Drag"] },
-  { name: "Zoom", keys: ["Scroll"] },
-  { name: "Edit label", keys: ["Double-click"] },
-  { name: "Duplicate", keys: ["Ctrl", "D"] },
-  { name: "Delete", keys: ["Del"] },
-  { name: "Undo", keys: ["Ctrl", "Z"] },
-  { name: "Redo", keys: ["Ctrl", "Shift", "Z"] },
-  { name: "Save", keys: ["Ctrl", "S"] },
-];
-
 const TYPE_LABELS: Record<string, string> = {
   roundedRectangle: "Rounded rectangle",
   startEnd: "Start / end",
@@ -62,76 +51,28 @@ const typeLabel = (type: string): string =>
 /* -------------------------------------------------------------------------- */
 
 export default function WorkspaceSidebar({
-  shapes = [],
   selectedShape = null,
-  zoom = 100,
   onUpdate,
   onDuplicate,
   onDelete,
 }: WorkspaceSidebarProps) {
+  // The properties panel is intentionally contextual: no selection means no
+  // right-side panel. This keeps the canvas clean until the user clicks a shape.
+  if (!selectedShape) return null;
+
   return (
     <aside
       aria-label="Properties"
-      className="absolute right-4 top-[72px] z-40 hidden max-h-[calc(100vh-88px)] w-[280px] overflow-y-auto rounded-xl border border-[#2A2118] bg-[#14110E]/95 shadow-2xl backdrop-blur-xl lg:block"
+      className="absolute right-4 top-[72px] z-40 max-h-[calc(100vh-88px)] w-[280px] overflow-y-auto rounded-2xl border border-[#2A2118] bg-[#0B0B0B]/95 shadow-2xl backdrop-blur-xl"
     >
-      {selectedShape ? (
-        <ShapeInspector
-          key={selectedShape.id}
-          shape={selectedShape}
-          onUpdate={onUpdate}
-          onDuplicate={onDuplicate}
-          onDelete={onDelete}
-        />
-      ) : (
-        <CanvasPanel zoom={zoom} objectCount={shapes.length} />
-      )}
-    </aside>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Nothing selected                                                           */
-/* -------------------------------------------------------------------------- */
-
-function CanvasPanel({
-  zoom,
-  objectCount,
-}: {
-  zoom: number;
-  objectCount: number;
-}) {
-  return (
-    <>
-      <PanelHeader
-        title="Canvas"
-        subtitle="Select an object to edit its properties."
+      <ShapeInspector
+        key={selectedShape.id}
+        shape={selectedShape}
+        onUpdate={onUpdate}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
       />
-
-      <Section title="View">
-        <dl className="space-y-2 text-[13px]">
-          <Row name="Zoom" value={`${zoom}%`} />
-          <Row name="Objects" value={String(objectCount)} />
-        </dl>
-      </Section>
-
-      <Section title="Shortcuts">
-        <ul className="space-y-2.5">
-          {SHORTCUTS.map((shortcut) => (
-            <li
-              key={shortcut.name}
-              className="flex items-center justify-between gap-3 text-[13px] text-[#9A896F]"
-            >
-              <span>{shortcut.name}</span>
-              <span className="flex items-center gap-1">
-                {shortcut.keys.map((key) => (
-                  <Kbd key={key}>{key}</Kbd>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Section>
-    </>
+    </aside>
   );
 }
 
@@ -262,7 +203,7 @@ function ShapeInspector({
         <div
           role="group"
           aria-label="Line style"
-          className="grid grid-cols-3 gap-1 rounded-lg border border-[#2A2118] bg-[#0F0D0A] p-1"
+          className="grid grid-cols-3 gap-1 rounded-xl border border-[#2A2118] bg-[#0F0D0A] p-1"
         >
           {STYLE_OPTIONS.map((option) => (
             <SegmentButton
@@ -281,7 +222,7 @@ function ShapeInspector({
         <div
           role="group"
           aria-label="Line weight"
-          className="grid grid-cols-4 gap-1 rounded-lg border border-[#2A2118] bg-[#0F0D0A] p-1"
+          className="grid grid-cols-4 gap-1 rounded-xl border border-[#2A2118] bg-[#0F0D0A] p-1"
         >
           {WEIGHT_OPTIONS.map((weight) => (
             <SegmentButton
@@ -347,23 +288,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="mb-3 text-[12px] font-medium text-[#B39A72]">{title}</h3>
       {children}
     </section>
-  );
-}
-
-function Row({ name, value }: { name: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-[#9A896F]">{name}</dt>
-      <dd className="tabular-nums text-[#D6C4A3]">{value}</dd>
-    </div>
-  );
-}
-
-function Kbd({ children }: { children: ReactNode }) {
-  return (
-    <kbd className="rounded border border-[#2A2118] bg-[#17130F] px-1.5 py-0.5 text-[11px] text-[#B39A72]">
-      {children}
-    </kbd>
   );
 }
 
@@ -445,7 +369,7 @@ function StyleGlyph({ style }: { style: StrokeStyle }) {
 /* -------------------------------------------------------------------------- */
 
 const FIELD_SHELL =
-  "flex h-9 items-center gap-2 rounded-lg border border-[#2A2118] bg-[#17130F] px-2.5 transition focus-within:border-[#A9854F]/60";
+  "flex h-9 items-center gap-2 rounded-xl border border-[#2A2118] bg-[#17130F] px-2.5 transition focus-within:border-[#A9854F]/60";
 
 /**
  * Both fields keep a local draft while focused and commit on Enter / blur
@@ -465,6 +389,7 @@ function NumberField({
   disabled?: boolean;
   onCommit: (value: number) => void;
 }) {
+  const id = useId();
   const [draft, setDraft] = useState<string | null>(null);
   const cancelled = useRef(false);
 
@@ -500,9 +425,15 @@ function NumberField({
   );
 
   return (
-    <label className={`${FIELD_SHELL} ${disabled ? "opacity-50" : ""}`}>
+    <label
+      htmlFor={id}
+      className={`${FIELD_SHELL} ${disabled ? "opacity-50" : ""}`}
+    >
       <span className="shrink-0 text-[12px] text-[#8F806B]">{label}</span>
       <input
+        id={id}
+        name={label.toLowerCase().replace(/\s+/g, "-")}
+        autoComplete="off"
         value={draft ?? String(value)}
         disabled={disabled}
         inputMode="numeric"
@@ -535,6 +466,7 @@ function TextField({
   placeholder?: string;
   onCommit: (value: string) => void;
 }) {
+  const id = useId();
   const [draft, setDraft] = useState<string | null>(null);
   const cancelled = useRef(false);
 
@@ -564,6 +496,9 @@ function TextField({
   return (
     <div className={FIELD_SHELL}>
       <input
+        id={id}
+        name="shape-label"
+        autoComplete="off"
         value={draft ?? value}
         placeholder={placeholder}
         aria-label="Label"

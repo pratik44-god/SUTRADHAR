@@ -17,6 +17,6 @@
     "next-env.d.ts",
     "next.config.js",
     ".next/types/**/*.ts"
-  ],
+, "hooks/api/teamProjects", "hooks/api/teamMembers"  ],
   "exclude": ["node_modules"]
 }

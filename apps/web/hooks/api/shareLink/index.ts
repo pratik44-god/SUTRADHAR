@@ -1,30 +1,30 @@
-// import { trpc } from "~/trpc/client";
+import { trpc } from "~/trpc/client";
 
+export const useCreateShareLink = () => {
+  const {
+    mutateAsync: createShareLinkAsync,
+    mutate: createShareLink,
+    data: shareLink,
+    error,
+    isError,
+    isPending,
+    isSuccess,
+    status,
+  } = trpc.shareLink.createShareLink.useMutation();
 
-// export const useCreateShareLink = (projectId: string) => {
-//   const {
-//     data: shareLink,
-//     error,
-//     isError,
-//     isPending,
-//     isSuccess,
-//     status,
-//   } = trpc.shareLink.createShareLink.useMutation();
-
-//   return {        
-//     shareLink,
-//     error,
-//     isError,
-//     isPending,
-//     isSuccess,
-//     status,
-//   };
-// };
-
+  return {
+    createShareLinkAsync,
+    createShareLink,
+    shareLink,
+    error,
+    isError,
+    isPending,
+    isSuccess,
+    status,
+  };
+};
 
 export const useEnableSharing = () => {
-  const utils = trpc.useUtils();
-
   const {
     mutateAsync: enableSharingAsync,
     mutate: enableSharing,
@@ -33,11 +33,7 @@ export const useEnableSharing = () => {
     isError,
     isSuccess,
     status,
-  } = trpc.project.enableSharing.useMutation({
-    onSuccess: async (_result, variables) => {
-      await utils.project.getProjectById.invalidate({ id: variables.id });
-    },
-  });
+  } = trpc.shareLink.enableSharing.useMutation();
 
   return {
     enableSharingAsync,
@@ -51,8 +47,6 @@ export const useEnableSharing = () => {
 };
 
 export const useDisableSharing = () => {
-  const utils = trpc.useUtils();
-
   const {
     mutateAsync: disableSharingAsync,
     mutate: disableSharing,
@@ -61,11 +55,7 @@ export const useDisableSharing = () => {
     isError,
     isSuccess,
     status,
-  } = trpc.project.disableSharing.useMutation({
-    onSuccess: async (_result, variables) => {
-      await utils.project.getProjectById.invalidate({ id: variables.id });
-    },
-  });
+  } = trpc.shareLink.disableSharing.useMutation();
 
   return {
     disableSharingAsync,
@@ -78,7 +68,6 @@ export const useDisableSharing = () => {
   };
 };
 
-/** Public: works for visitors who are not logged in. */
 export const useSharedProject = (token: string) => {
   const {
     data: project,
@@ -87,7 +76,17 @@ export const useSharedProject = (token: string) => {
     isError,
     isSuccess,
     status,
-  } = trpc.project.getSharedProject.useQuery({ token }, { retry: false });
+  } = trpc.shareLink.getSharedProject.useQuery(
+    { token },
+    { retry: false }
+  );
 
-  return { project, error, isLoading, isError, isSuccess, status };
+  return {
+    project,
+    error,
+    isLoading,
+    isError,
+    isSuccess,
+    status,
+  };
 };

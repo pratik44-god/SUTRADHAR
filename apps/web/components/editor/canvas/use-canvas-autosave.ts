@@ -2,32 +2,44 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { trpc } from "~/trpc/client";
-
 export type CanvasSaveState = "saved" | "unsaved" | "saving" | "error";
 
-const DEBOUNCE_MS = 800;
+type Options = {
+  debounceMs?: number;
+  maxRetries?: number;
+  /** Called after each successful save, e.g. to refresh a query cache. */
+  onSaved?: (canvasData: string) => void;
+};
 
 /**
- * Saves the canvas JSON produced by <BlankWorkspace onCanvasChange={save} />.
+ * Debounced, ordered, retrying autosave for <BlankWorkspace onCanvasChange={save} />.
+ *
+ * It does NOT know about tRPC, routes or the database. You pass `persist`,
+ * a function that stores the canvas JSON using whatever mutation you already
+ * have (for example `updateProjectAsync` from `useUpdateProject`).
  *
  *  - debounced: a burst of edits becomes one request
- *  - one request at a time, newest data wins: two overlapping requests can
- *    arrive out of order and an older canvas would overwrite a newer one
- *  - failed saves keep the data and can be retried with `flush()`
- *  - keeps the react-query cache in sync, so reopening the project never
- *    shows an older copy
- *  - flushes on unmount and on tab close, and warns before leaving while
- *    something is unsaved
+ *  - one request at a time, newest data wins (no out-of-order overwrites)
+ *  - failed saves keep the data, retry with backoff, and can be retried
+ *    manually with `flush()`
+ *  - flushes on unmount / tab hide, and warns before leaving while unsaved
+ *
+ * Use one instance per project (mount it under a component keyed by project id).
  */
-export function useCanvasAutosave(projectId: string) {
-  const utils = trpc.useUtils();
-  const utilsRef = useRef(utils);
-  utilsRef.current = utils;
+export function useCanvasAutosave(
+  persist: (canvasData: string) => Promise<unknown>,
+  { debounceMs = 800, maxRetries = 5, onSaved }: Options = {},
+) {
+  const persistRef = useRef(persist);
+  const onSavedRef = useRef(onSaved);
+  persistRef.current = persist;
+  onSavedRef.current = onSaved;
 
   const pendingRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
+  const retryCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushRef = useRef<() => Promise<void>>(async () => {});
 
   const [state, setState] = useState<CanvasSaveState>("saved");
 
@@ -49,17 +61,9 @@ export function useCanvasAutosave(projectId: string) {
         setState("saving");
 
         try {
-          // The vanilla client keeps working even if this component unmounts
-          // (for example when the user clicks Back right after an edit).
-          await utilsRef.current.client.project.updateProject.mutate({
-            id: projectId,
-            canvasData,
-          });
-
-          utilsRef.current.project.getProjectById.setData(
-            { id: projectId },
-            (old) => (old ? { ...old, canvasData } : old),
-          );
+          await persistRef.current(canvasData);
+          onSavedRef.current?.(canvasData);
+          retryCountRef.current = 0;
         } catch (error) {
           console.error("[useCanvasAutosave] save failed", error);
 
@@ -67,6 +71,12 @@ export function useCanvasAutosave(projectId: string) {
           if (pendingRef.current === null) pendingRef.current = canvasData;
 
           setState("error");
+
+          if (retryCountRef.current < maxRetries) {
+            const delay = Math.min(30_000, 2_000 * 2 ** retryCountRef.current);
+            retryCountRef.current += 1;
+            timerRef.current = setTimeout(() => void flushRef.current(), delay);
+          }
           return;
         }
       }
@@ -75,22 +85,29 @@ export function useCanvasAutosave(projectId: string) {
     } finally {
       inFlightRef.current = false;
     }
-  }, [projectId]);
+  }, [maxRetries]);
+
+  flushRef.current = flush;
 
   /** Pass this to <BlankWorkspace onCanvasChange={save} />. */
   const save = useCallback(
     (canvasData: string) => {
       pendingRef.current = canvasData;
+      retryCountRef.current = 0;
       setState((current) => (current === "saving" ? current : "unsaved"));
 
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => void flush(), DEBOUNCE_MS);
+      timerRef.current = setTimeout(() => void flushRef.current(), debounceMs);
     },
-    [flush],
+    [debounceMs],
   );
 
   useEffect(() => {
-    const handlePageHide = () => void flush();
+    const flushNow = () => void flushRef.current();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") flushNow();
+    };
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (pendingRef.current !== null || inFlightRef.current) {
@@ -99,15 +116,17 @@ export function useCanvasAutosave(projectId: string) {
       }
     };
 
-    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pagehide", flushNow);
+    document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pagehide", flushNow);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      void flush();
+      flushNow();
     };
-  }, [flush]);
+  }, []);
 
   return { save, flush, state };
 }

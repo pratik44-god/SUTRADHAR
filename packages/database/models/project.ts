@@ -5,9 +5,11 @@ import {
   text,
   timestamp,
   pgEnum,
+  unique,
 } from "drizzle-orm/pg-core";
 
 import { usersTable } from "./user";
+import { teamsTable } from "./team";
 
 export const projectStatusEnum = pgEnum("project_status_enum", [
   "DRAFT",
@@ -28,6 +30,12 @@ export const projectsTable = pgTable("projects", {
   canvasData: text("canvas_data"),
 
   status: projectStatusEnum("status").notNull().default("DRAFT"),
+
+  
+  teamId: uuid("team_id")
+    .references(() => teamsTable.id, {
+      onDelete: "cascade",
+    }),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

@@ -1,928 +1,12 @@
-// "use client";
-
-// import { useState } from "react";
-// import type { DashboardSection } from "~/app/dashboard/page";
-// import ProjectCard from "~/components/dashboard/ProjectCard";
-
-// type Project = {
-//   id: string;
-//   title: string;
-//   description: string | null;
-//   createdAt: string;
-//   updatedAt: string;
-//   creatorsId: string;
-//   status:
-//     | "DRAFT"
-//     | "PUBLISHED"
-//     | "ARCHIVED";
-// };
-
-// type DashboardMainProps = {
-//   activeSection: DashboardSection;
-//   fullName: string;
-//   projects: Project[];
-//   isProjectsLoading: boolean;
-//   isCreating: boolean;
-//   onCreateProject: (
-//     title: string,
-//     description?: string,
-//   ) => Promise<void>;
-//   onOpenProject: (
-//     id: string,
-//   ) => void;
-//   onDeleteProject: (
-//     id: string,
-//   ) => Promise<void>;
-// };
-
-// export default function DashboardMain({
-//   activeSection,
-//   fullName,
-//   projects,
-//   isProjectsLoading,
-//   isCreating,
-//   onCreateProject,
-//   onOpenProject,
-//   onDeleteProject,
-// }: DashboardMainProps) {
-//   if (activeSection === "projects") {
-//     return (
-//       <ProjectsView
-//         projects={projects}
-//         isProjectsLoading={isProjectsLoading}
-//         fullName={fullName}
-//         isCreating={isCreating}
-//         onCreateProject={onCreateProject}
-//         onOpenProject={onOpenProject}
-//         onDeleteProject={onDeleteProject}
-//       />
-//     );
-//   }
-
-//   if (activeSection === "shared") {
-//     return <SharedView />;
-//   }
-
-//   if (activeSection === "archive") {
-//     return <ArchiveView />;
-//   }
-
-//   if (activeSection === "team") {
-//     return <TeamView />;
-//   }
-
-//   return (
-//     <HomeView
-//       fullName={fullName}
-//       projects={projects}
-//       isProjectsLoading={isProjectsLoading}
-//       isCreating={isCreating}
-//       onCreateProject={onCreateProject}
-//       onOpenProject={onOpenProject}
-//       onDeleteProject={onDeleteProject}
-//     />
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* HOME                                                                       */
-// /* -------------------------------------------------------------------------- */
-
-// type HomeViewProps = {
-//   fullName: string;
-//   projects: Project[];
-//   isProjectsLoading: boolean;
-//   isCreating: boolean;
-//   onCreateProject: (
-//     title: string,
-//     description?: string,
-//   ) => Promise<void>;
-//   onOpenProject: (
-//     id: string,
-//   ) => void;
-//   onDeleteProject: (
-//     id: string,
-//   ) => Promise<void>;
-// };
-
-// function HomeView({
-//   fullName,
-//   projects,
-//   isProjectsLoading,
-//   isCreating,
-//   onCreateProject,
-//   onOpenProject,
-//   onDeleteProject,
-// }: HomeViewProps) {
-//   const firstName =
-//     fullName.trim().split(/\s+/)[0] ||
-//     "there";
-
-//   return (
-//     <section className="min-w-0 overflow-hidden bg-[#090B0A]">
-//       <div className="h-full overflow-y-auto px-8 py-8">
-//         <div className="mx-auto max-w-[1120px]">
-//           <div className="mb-8">
-//             <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9854F]">
-//               Sutradhara / Overview
-//             </p>
-
-//             <h1 className="mt-3 font-serif text-[30px] leading-tight text-[#F0E6D2]">
-//               What are you building,{" "}
-//               {firstName}?
-//             </h1>
-
-//             <p className="mt-2 max-w-[650px] text-[13px] leading-6 text-[#77736B]">
-//               Start with a thought, give it
-//               structure, and let the idea
-//               evolve into something complete.
-//             </p>
-//           </div>
-
-//           <CreationOptions
-//             isCreating={isCreating}
-//             onCreateProject={onCreateProject}
-//           />
-
-//           <RecentProjects
-//             projects={projects}
-//             isProjectsLoading={isProjectsLoading}
-//             fullName={fullName}
-//             onOpenProject={onOpenProject}
-//             onDeleteProject={onDeleteProject}
-//           />
-//         </div>
-//       </div>
-//     </section>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* CREATE OPTIONS                                                             */
-// /* -------------------------------------------------------------------------- */
-
-// type CreationOptionsProps = {
-//   isCreating: boolean;
-//   onCreateProject: (
-//     title: string,
-//     description?: string,
-//   ) => Promise<void>;
-// };
-
-// function CreationOptions({
-//   isCreating,
-//   onCreateProject,
-// }: CreationOptionsProps) {
-//   const [showCreateForm, setShowCreateForm] =
-//     useState(false);
-
-//   const [selectedType, setSelectedType] =
-//     useState("Blank Canvas");
-
-//   const handleSelectCreate = (
-//     type: string,
-//   ) => {
-//     setSelectedType(type);
-//     setShowCreateForm(true);
-//   };
-
-//   const handleCancel = () => {
-//     setShowCreateForm(false);
-//   };
-
-//   if (showCreateForm) {
-//     return (
-//       <CreateProjectForm
-//         selectedType={selectedType}
-//         isCreating={isCreating}
-//         onCreateProject={onCreateProject}
-//         onCancel={handleCancel}
-//       />
-//     );
-//   }
-
-//   return (
-//     <div>
-//       <div className="mb-4 flex items-center justify-between">
-//         <div>
-//           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#625E56]">
-//             Create
-//           </p>
-
-//           <h2 className="mt-1.5 text-[17px] font-medium text-[#D8CFBF]">
-//             Begin a new thread
-//           </h2>
-//         </div>
-//       </div>
-
-//       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-//         <CreationCard
-//           title="Blank Canvas"
-//           description="Start from an empty workspace."
-//           icon={<BlankCanvasIcon />}
-//           onClick={() =>
-//             handleSelectCreate("Blank Canvas")
-//           }
-//           disabled={isCreating}
-//         />
-
-//         <CreationCard
-//           title="Generate with AI"
-//           description="Turn a thought into a structure."
-//           icon={<AiIcon />}
-//           onClick={() =>
-//             handleSelectCreate("Generate with AI")
-//           }
-//           disabled={isCreating}
-//         />
-
-//         <CreationCard
-//           title="Use Template"
-//           description="Start with a ready-made structure."
-//           icon={<TemplateIcon />}
-//           onClick={() =>
-//             handleSelectCreate("Use Template")
-//           }
-//           disabled={isCreating}
-//         />
-
-//         <CreationCard
-//           title="Create for Team"
-//           description="Build together in one workspace."
-//           icon={<TeamCreateIcon />}
-//           onClick={() =>
-//             handleSelectCreate("Create for Team")
-//           }
-//           disabled={isCreating}
-//         />
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* CREATE PROJECT FORM                                                        */
-// /* -------------------------------------------------------------------------- */
-
-// type CreateProjectFormProps = {
-//   selectedType: string;
-//   isCreating: boolean;
-//   onCreateProject: (
-//     title: string,
-//     description?: string,
-//   ) => Promise<void>;
-//   onCancel: () => void;
-// };
-
-// function CreateProjectForm({
-//   selectedType,
-//   isCreating,
-//   onCreateProject,
-//   onCancel,
-// }: CreateProjectFormProps) {
-//   const [title, setTitle] = useState("");
-//   const [description, setDescription] =
-//     useState("");
-
-//   const handleCreate = async () => {
-//     const finalTitle =
-//       title.trim() || "Untitled";
-
-//     const finalDescription =
-//       description.trim() || undefined;
-
-//     await onCreateProject(
-//       finalTitle,
-//       finalDescription,
-//     );
-//   };
-
-//   return (
-//     <div className="rounded-2xl border border-[#A9854F]/15 bg-[#111311] p-6">
-//       <div className="mb-6 flex items-start justify-between">
-//         <div>
-//           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#A9854F]">
-//             New Workspace
-//           </p>
-
-//           <h2 className="mt-2 font-serif text-[23px] text-[#F0E6D2]">
-//             Create your project
-//           </h2>
-
-//           <p className="mt-2 text-[12px] leading-5 text-[#77736B]">
-//             {selectedType} · Give your idea a
-//             name before entering the workspace.
-//           </p>
-//         </div>
-
-//         <button
-//           type="button"
-//           onClick={onCancel}
-//           className="rounded-lg px-3 py-2 text-[11px] text-[#77736B] transition hover:bg-[#171A17] hover:text-[#D6C4A3]"
-//         >
-//           Cancel
-//         </button>
-//       </div>
-
-//       <div className="space-y-5">
-//         <div>
-//           <label
-//             htmlFor="project-title"
-//             className="mb-2 block font-mono text-[9px] uppercase tracking-[0.18em] text-[#8B857B]"
-//           >
-//             Title
-//           </label>
-
-//           <input
-//             id="project-title"
-//             type="text"
-//             value={title}
-//             onChange={(event) =>
-//               setTitle(event.target.value)
-//             }
-//             placeholder="Untitled"
-//             maxLength={100}
-//             autoFocus
-//             className="w-full rounded-xl border border-[#A9854F]/15 bg-[#0B0D0C] px-4 py-3 text-[13px] text-[#E6DDCE] outline-none placeholder:text-[#4F4C47] focus:border-[#A9854F]/40"
-//           />
-//         </div>
-
-//         <div>
-//           <label
-//             htmlFor="project-description"
-//             className="mb-2 block font-mono text-[9px] uppercase tracking-[0.18em] text-[#8B857B]"
-//           >
-//             Description
-//             <span className="ml-2 normal-case tracking-normal text-[#55514B]">
-//               Optional
-//             </span>
-//           </label>
-
-//           <textarea
-//             id="project-description"
-//             value={description}
-//             onChange={(event) =>
-//               setDescription(event.target.value)
-//             }
-//             placeholder="What is this project about?"
-//             maxLength={300}
-//             rows={4}
-//             className="w-full resize-none rounded-xl border border-[#A9854F]/15 bg-[#0B0D0C] px-4 py-3 text-[13px] leading-5 text-[#E6DDCE] outline-none placeholder:text-[#4F4C47] focus:border-[#A9854F]/40"
-//           />
-//         </div>
-
-//         <div className="flex justify-end pt-1">
-//           <button
-//             type="button"
-//             onClick={handleCreate}
-//             disabled={isCreating}
-//             className="rounded-xl border border-[#A9854F]/30 bg-[#A9854F]/10 px-6 py-3 text-[12px] font-medium text-[#DCC9A7] transition hover:border-[#A9854F]/50 hover:bg-[#A9854F]/15 disabled:cursor-not-allowed disabled:opacity-50"
-//           >
-//             {isCreating
-//               ? "Creating..."
-//               : "Create Project"}
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* CREATION CARD                                                              */
-// /* -------------------------------------------------------------------------- */
-
-// type CreationCardProps = {
-//   title: string;
-//   description: string;
-//   icon: React.ReactNode;
-//   onClick: () => void;
-//   disabled: boolean;
-// };
-
-// function CreationCard({
-//   title,
-//   description,
-//   icon,
-//   onClick,
-//   disabled,
-// }: CreationCardProps) {
-//   return (
-//     <button
-//       type="button"
-//       onClick={onClick}
-//       disabled={disabled}
-//       className="group min-h-[155px] rounded-2xl border border-[#A9854F]/10 bg-[#111311] p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-[#A9854F]/25 hover:bg-[#151714] disabled:cursor-not-allowed disabled:opacity-50"
-//     >
-//       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#A9854F]/15 bg-[#171A17] text-[#B99052] transition group-hover:border-[#A9854F]/30">
-//         {icon}
-//       </div>
-
-//       <h3 className="mt-5 text-[14px] font-medium text-[#D8CFBF]">
-//         {title}
-//       </h3>
-
-//       <p className="mt-2 text-[11px] leading-5 text-[#706D66]">
-//         {description}
-//       </p>
-//     </button>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* RECENT PROJECTS                                                            */
-// /* -------------------------------------------------------------------------- */
-
-// type RecentProjectsProps = {
-//   projects: Project[];
-//   isProjectsLoading: boolean;
-//   fullName: string;
-//   onOpenProject: (
-//     id: string,
-//   ) => void;
-//   onDeleteProject: (
-//     id: string,
-//   ) => Promise<void>;
-// };
-
-// function RecentProjects({
-//   projects,
-//   isProjectsLoading,
-//   fullName,
-//   onOpenProject,
-//   onDeleteProject,
-// }: RecentProjectsProps) {
-//   return (
-//     <section className="mt-10">
-//       <div className="mb-4 flex items-end justify-between">
-//         <div>
-//           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#625E56]">
-//             Workspace
-//           </p>
-
-//           <h2 className="mt-1.5 text-[17px] font-medium text-[#D8CFBF]">
-//             Recent projects
-//           </h2>
-//         </div>
-
-//         <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#625E56]">
-//           {projects.length}{" "}
-//           {projects.length === 1
-//             ? "project"
-//             : "projects"}
-//         </p>
-//       </div>
-
-//       {isProjectsLoading ? (
-//         <ProjectsLoading />
-//       ) : projects.length === 0 ? (
-//         <EmptyProjects />
-//       ) : (
-//         <div className="space-y-2">
-//           {projects.map((project) => (
-//             <ProjectCard
-//               key={project.id}
-//               project={project}
-//               authorName={fullName}
-//               onOpenProject={onOpenProject}
-//               onDeleteProject={
-//                 onDeleteProject
-//               }
-//             />
-//           ))}
-//         </div>
-//       )}
-//     </section>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* PROJECTS PAGE                                                              */
-// /* -------------------------------------------------------------------------- */
-
-// type ProjectsViewProps = {
-//   projects: Project[];
-//   isProjectsLoading: boolean;
-//   fullName: string;
-//   isCreating: boolean;
-//   onCreateProject: (
-//     title: string,
-//     description?: string,
-//   ) => Promise<void>;
-//   onOpenProject: (
-//     id: string,
-//   ) => void;
-//   onDeleteProject: (
-//     id: string,
-//   ) => Promise<void>;
-// };
-
-// function ProjectsView({
-//   projects,
-//   isProjectsLoading,
-//   fullName,
-//   isCreating,
-//   onCreateProject,
-//   onOpenProject,
-//   onDeleteProject,
-// }: ProjectsViewProps) {
-//   const [showCreateForm, setShowCreateForm] =
-//     useState(false);
-
-//   const handleCreate = async (
-//     title: string,
-//     description?: string,
-//   ) => {
-//     await onCreateProject(
-//       title,
-//       description,
-//     );
-//   };
-
-//   return (
-//     <section className="min-w-0 overflow-hidden bg-[#090B0A]">
-//       <div className="h-full overflow-y-auto px-8 py-8">
-//         <div className="mx-auto max-w-[1120px]">
-//           <div className="flex items-end justify-between">
-//             <div>
-//               <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9854F]">
-//                 Sutradhara / Projects
-//               </p>
-
-//               <h1 className="mt-3 font-serif text-[30px] text-[#F0E6D2]">
-//                 Your projects
-//               </h1>
-
-//               <p className="mt-2 text-[13px] text-[#77736B]">
-//                 Every idea, structure and
-//                 workspace in one place.
-//               </p>
-//             </div>
-
-//             <button
-//               type="button"
-//               onClick={() =>
-//                 setShowCreateForm(true)
-//               }
-//               disabled={isCreating}
-//               className="rounded-xl border border-[#A9854F]/20 bg-[#17130F] px-4 py-2.5 text-[11px] font-medium text-[#D6C4A3] transition hover:border-[#A9854F]/35 hover:bg-[#211A13] disabled:opacity-50"
-//             >
-//               + New project
-//             </button>
-//           </div>
-
-//           {showCreateForm && (
-//             <div className="mt-7">
-//               <CreateProjectForm
-//                 selectedType="Blank Canvas"
-//                 isCreating={isCreating}
-//                 onCreateProject={
-//                   handleCreate
-//                 }
-//                 onCancel={() =>
-//                   setShowCreateForm(false)
-//                 }
-//               />
-//             </div>
-//           )}
-
-//           <div className="mt-8">
-//             {isProjectsLoading ? (
-//               <ProjectsLoading />
-//             ) : projects.length === 0 ? (
-//               <EmptyProjects />
-//             ) : (
-//               <div className="space-y-2">
-//                 {projects.map((project) => (
-//                   <ProjectCard
-//                     key={project.id}
-//                     project={project}
-//                     authorName={fullName}
-//                     onOpenProject={
-//                       onOpenProject
-//                     }
-//                     onDeleteProject={
-//                       onDeleteProject
-//                     }
-//                   />
-//                 ))}
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     </section>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* OTHER SECTIONS                                                             */
-// /* -------------------------------------------------------------------------- */
-
-// function SharedView() {
-//   return (
-//     <SimpleSection
-//       label="Sutradhara / Shared"
-//       title="Shared with me"
-//       description="Projects that other collaborators have shared with you will appear here."
-//     />
-//   );
-// }
-
-// function ArchiveView() {
-//   return (
-//     <SimpleSection
-//       label="Sutradhara / Archive"
-//       title="Archive"
-//       description="Archived workspaces will live here when you are ready to put an idea aside."
-//     />
-//   );
-// }
-
-// function TeamView() {
-//   return (
-//     <SimpleSection
-//       label="Sutradhara / Team"
-//       title="Your team"
-//       description="Bring collaborators into your workspace and build ideas together."
-//     />
-//   );
-// }
-
-// type SimpleSectionProps = {
-//   label: string;
-//   title: string;
-//   description: string;
-// };
-
-// function SimpleSection({
-//   label,
-//   title,
-//   description,
-// }: SimpleSectionProps) {
-//   return (
-//     <section className="min-w-0 overflow-hidden bg-[#090B0A]">
-//       <div className="h-full px-8 py-8">
-//         <div className="mx-auto max-w-[1120px]">
-//           <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9854F]">
-//             {label}
-//           </p>
-
-//           <h1 className="mt-3 font-serif text-[30px] text-[#F0E6D2]">
-//             {title}
-//           </h1>
-
-//           <div className="mt-7 max-w-[700px] rounded-2xl border border-[#A9854F]/10 bg-[#111311] p-7">
-//             <p className="text-[13px] leading-6 text-[#77736B]">
-//               {description}
-//             </p>
-//           </div>
-//         </div>
-//       </div>
-//     </section>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* EMPTY / LOADING                                                            */
-// /* -------------------------------------------------------------------------- */
-
-// function EmptyProjects() {
-//   return (
-//     <div className="rounded-2xl border border-dashed border-[#A9854F]/15 bg-[#0E100F] px-6 py-12 text-center">
-//       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-[#A9854F]/15 bg-[#171A17]">
-//         <ThreadIcon />
-//       </div>
-
-//       <h3 className="mt-5 text-[15px] font-medium text-[#D6CBB9]">
-//         No projects yet
-//       </h3>
-
-//       <p className="mx-auto mt-2 max-w-[420px] text-[11px] leading-5 text-[#6F6B64]">
-//         Start with a blank canvas, use a
-//         template, or let AI help shape the
-//         first thread.
-//       </p>
-//     </div>
-//   );
-// }
-
-// function ProjectsLoading() {
-//   return (
-//     <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-[#A9854F]/10 bg-[#0E100F]">
-//       <div className="flex items-center gap-3">
-//         <div className="h-5 w-5 animate-spin rounded-full border border-[#A9854F]/20 border-t-[#B99052]" />
-
-//         <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#706B62]">
-//           Loading projects
-//         </span>
-//       </div>
-//     </div>
-//   );
-// }
-
-// /* -------------------------------------------------------------------------- */
-// /* ICONS                                                                      */
-// /* -------------------------------------------------------------------------- */
-
-// function BlankCanvasIcon() {
-//   return (
-//     <svg
-//       width="21"
-//       height="21"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//     >
-//       <rect
-//         x="4"
-//         y="4"
-//         width="16"
-//         height="16"
-//         rx="2"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//       />
-
-//       <path
-//         d="M8 12H16"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//         strokeLinecap="round"
-//       />
-
-//       <path
-//         d="M12 8V16"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//         strokeLinecap="round"
-//       />
-//     </svg>
-//   );
-// }
-
-// function AiIcon() {
-//   return (
-//     <svg
-//       width="21"
-//       height="21"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//     >
-//       <path
-//         d="M12 3L13.7 9.3L20 11L13.7 12.7L12 19L10.3 12.7L4 11L10.3 9.3L12 3Z"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//         strokeLinejoin="round"
-//       />
-
-//       <path
-//         d="M19 4V7"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//         strokeLinecap="round"
-//       />
-
-//       <path
-//         d="M20.5 5.5H17.5"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//         strokeLinecap="round"
-//       />
-//     </svg>
-//   );
-// }
-
-// function TemplateIcon() {
-//   return (
-//     <svg
-//       width="21"
-//       height="21"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//     >
-//       <rect
-//         x="4"
-//         y="4"
-//         width="16"
-//         height="16"
-//         rx="2"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//       />
-
-//       <rect
-//         x="7"
-//         y="7"
-//         width="4"
-//         height="4"
-//         rx="0.5"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//       />
-
-//       <rect
-//         x="13"
-//         y="7"
-//         width="4"
-//         height="4"
-//         rx="0.5"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//       />
-
-//       <rect
-//         x="7"
-//         y="13"
-//         width="10"
-//         height="4"
-//         rx="0.5"
-//         stroke="currentColor"
-//         strokeWidth="1.2"
-//       />
-//     </svg>
-//   );
-// }
-
-// function TeamCreateIcon() {
-//   return (
-//     <svg
-//       width="21"
-//       height="21"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//     >
-//       <circle
-//         cx="9"
-//         cy="9"
-//         r="3"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//       />
-
-//       <circle
-//         cx="17"
-//         cy="10"
-//         r="2.5"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//       />
-
-//       <path
-//         d="M3.5 19C4 15.8 5.8 14 9 14C12.2 14 14 15.8 14.5 19"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//         strokeLinecap="round"
-//       />
-
-//       <path
-//         d="M17 15V20"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//         strokeLinecap="round"
-//       />
-
-//       <path
-//         d="M14.5 17.5H19.5"
-//         stroke="currentColor"
-//         strokeWidth="1.3"
-//         strokeLinecap="round"
-//       />
-//     </svg>
-//   );
-// }
-
-// function ThreadIcon() {
-//   return (
-//     <svg
-//       width="20"
-//       height="20"
-//       viewBox="0 0 24 24"
-//       fill="none"
-//     >
-//       <circle
-//         cx="12"
-//         cy="12"
-//         r="7"
-//         stroke="#A9854F"
-//         strokeWidth="1.2"
-//         strokeDasharray="2 3"
-//       />
-
-//       <path
-//         d="M12 6C15 9 15 11 12 12C9 13 9 15 12 18"
-//         stroke="#D6C4A3"
-//         strokeWidth="1.2"
-//         strokeLinecap="round"
-//       />
-//     </svg>
-//   );
-// }
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type { DashboardSection } from "~/app/dashboard/page";
 import ProjectCard from "~/components/dashboard/ProjectCard";
+import TeamPage from "~/components/dashboard/TeamPage";
+import { useCreateTeamProject } from "~/hooks/api/teamProjects";
 
 type Project = {
   id: string;
@@ -939,6 +23,7 @@ type Project = {
 
 type DashboardMainProps = {
   activeSection: DashboardSection;
+  userId?: string;
   fullName: string;
   projects: Project[];
   isProjectsLoading: boolean;
@@ -955,8 +40,17 @@ type DashboardMainProps = {
   ) => Promise<void>;
 };
 
+/*
+ * Same storage key TeamPage uses to persist
+ * the selected team. Read here (not written)
+ * so the "Create for Team" flow knows which
+ * team to create the canvas under.
+ */
+const TEAM_ID_STORAGE_KEY = "sutradhara-team-id";
+
 export default function DashboardMain({
   activeSection,
+  userId,
   fullName,
   projects,
   isProjectsLoading,
@@ -984,15 +78,35 @@ export default function DashboardMain({
   }
 
   if (activeSection === "archive") {
-    return <ArchiveView />;
+    return (
+      <ArchiveView
+        projects={projects}
+        isProjectsLoading={isProjectsLoading}
+        onOpenProject={onOpenProject}
+        onDeleteProject={onDeleteProject}
+      />
+    );
   }
 
   if (activeSection === "team") {
-    return <TeamView />;
+    /*
+     * Real team management now lives here
+     * instead of the old static placeholder.
+     * Team canvases created from this page
+     * only ever show up here (getTeamProjectsByTeamId),
+     * never in the personal projects list above.
+     */
+    return (
+      <TeamPage
+        userId={userId}
+        fullName={fullName}
+      />
+    );
   }
 
   return (
     <HomeView
+      userId={userId}
       fullName={fullName}
       projects={projects}
       isProjectsLoading={isProjectsLoading}
@@ -1009,6 +123,7 @@ export default function DashboardMain({
 /* -------------------------------------------------------------------------- */
 
 type HomeViewProps = {
+  userId?: string;
   fullName: string;
   projects: Project[];
   isProjectsLoading: boolean;
@@ -1026,6 +141,7 @@ type HomeViewProps = {
 };
 
 function HomeView({
+  userId,
   fullName,
   projects,
   isProjectsLoading,
@@ -1273,6 +389,8 @@ function CreateProjectModal({
   onCreateProject,
   onCancel,
 }: CreateProjectModalProps) {
+  const router = useRouter();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] =
     useState("");
@@ -1283,9 +401,73 @@ function CreateProjectModal({
   const [selectedMembers, setSelectedMembers] =
     useState<string[]>(["You"]);
 
+  /*
+   * "Create for Team" needs an existing team
+   * (created from the Team page). We read the
+   * same id TeamPage persists to localStorage
+   * rather than duplicating team-creation UI
+   * here.
+   */
+  const [teamId, setTeamId] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    if (selectedType !== "Create for Team") {
+      return;
+    }
+
+    setTeamId(
+      window.localStorage.getItem(
+        TEAM_ID_STORAGE_KEY,
+      ),
+    );
+  }, [selectedType]);
+
+  const {
+    createTeamProjectAsync,
+    status: createTeamProjectStatus,
+  } = useCreateTeamProject();
+
+  const isCreatingTeamProject =
+    createTeamProjectStatus === "pending";
+
+  const isBusy =
+    isCreating || isCreatingTeamProject;
+
   const handleCreate = async () => {
     const finalTitle =
       title.trim() || "Untitled";
+
+    if (selectedType === "Create for Team") {
+      if (!teamId) {
+        return;
+      }
+
+      try {
+        const teamProject =
+          await createTeamProjectAsync({
+            teamId,
+            title: finalTitle,
+            description:
+              description.trim() ||
+              "Shared workspace for collaboration.",
+          });
+
+        if (teamProject?.projectId) {
+          router.push(
+            `/dashboard/project/${teamProject.projectId}`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to create team canvas:",
+          error,
+        );
+      }
+
+      return;
+    }
 
     let finalDescription =
       description.trim() || undefined;
@@ -1296,14 +478,6 @@ function CreateProjectModal({
     ) {
       finalDescription =
         `Started from ${selectedTemplate} template.`;
-    }
-
-    if (
-      selectedType === "Create for Team" &&
-      !finalDescription
-    ) {
-      finalDescription =
-        "Shared workspace for collaboration.";
     }
 
     await onCreateProject(
@@ -1335,13 +509,11 @@ function CreateProjectModal({
 
   return (
     <>
-      {/* Full dashboard backdrop */}
       <div
         className="fixed inset-0 z-[100] bg-black/65 backdrop-blur-md"
         onClick={onCancel}
       />
 
-      {/* Modal layer */}
       <div className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto px-5 py-8">
         <div
           role="dialog"
@@ -1353,7 +525,6 @@ function CreateProjectModal({
           }
         >
           <div className="p-6">
-            {/* Header */}
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[#A9854F]">
@@ -1381,7 +552,7 @@ function CreateProjectModal({
               <button
                 type="button"
                 onClick={onCancel}
-                disabled={isCreating}
+                disabled={isBusy}
                 aria-label="Close"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[18px] text-[#68645D] transition hover:bg-[#171A17] hover:text-[#D6C4A3] disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -1389,7 +560,6 @@ function CreateProjectModal({
               </button>
             </div>
 
-            {/* Blank Canvas */}
             {selectedType ===
               "Blank Canvas" && (
               <BlankCanvasForm
@@ -1402,7 +572,6 @@ function CreateProjectModal({
               />
             )}
 
-            {/* AI */}
             {selectedType ===
               "Generate with AI" && (
               <AiCreateForm
@@ -1415,7 +584,6 @@ function CreateProjectModal({
               />
             )}
 
-            {/* Template */}
             {selectedType ===
               "Use Template" && (
               <TemplateCreateForm
@@ -1434,7 +602,6 @@ function CreateProjectModal({
               />
             )}
 
-            {/* Team */}
             {selectedType ===
               "Create for Team" && (
               <TeamCreateForm
@@ -1443,6 +610,7 @@ function CreateProjectModal({
                 selectedMembers={
                   selectedMembers
                 }
+                hasTeam={Boolean(teamId)}
                 setTitle={setTitle}
                 setDescription={
                   setDescription
@@ -1453,12 +621,11 @@ function CreateProjectModal({
               />
             )}
 
-            {/* Footer */}
             <div className="mt-6 flex items-center justify-between border-t border-[#A9854F]/10 pt-5">
               <button
                 type="button"
                 onClick={onCancel}
-                disabled={isCreating}
+                disabled={isBusy}
                 className="rounded-lg px-3 py-2 text-[11px] text-[#77736B] transition hover:bg-[#171A17] hover:text-[#D6C4A3] disabled:opacity-40"
               >
                 Cancel
@@ -1467,10 +634,15 @@ function CreateProjectModal({
               <button
                 type="button"
                 onClick={handleCreate}
-                disabled={isCreating}
+                disabled={
+                  isBusy ||
+                  (selectedType ===
+                    "Create for Team" &&
+                    !teamId)
+                }
                 className="rounded-xl border border-[#A9854F]/30 bg-[#A9854F]/10 px-6 py-3 text-[12px] font-medium text-[#DCC9A7] transition hover:border-[#A9854F]/50 hover:bg-[#A9854F]/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isCreating
+                {isBusy
                   ? "Creating..."
                   : getCreateButtonText(
                       selectedType,
@@ -1720,6 +892,7 @@ type TeamCreateFormProps = {
   title: string;
   description: string;
   selectedMembers: string[];
+  hasTeam: boolean;
   setTitle: (
     value: string,
   ) => void;
@@ -1735,6 +908,7 @@ function TeamCreateForm({
   title,
   description,
   selectedMembers,
+  hasTeam,
   setTitle,
   setDescription,
   toggleMember,
@@ -1759,6 +933,17 @@ function TeamCreateForm({
 
   return (
     <div className="mt-6 space-y-5">
+      {!hasTeam && (
+        <div className="rounded-xl border border-[#A9854F]/20 bg-[#A9854F]/5 px-4 py-3">
+          <p className="text-[11px] leading-5 text-[#D6C4A3]">
+            You don't have a team yet. Head to
+            the Team tab to create one first —
+            this canvas will be added to that
+            team once it exists.
+          </p>
+        </div>
+      )}
+
       <ProjectTitleInput
         title={title}
         setTitle={setTitle}
@@ -1774,6 +959,11 @@ function TeamCreateForm({
       <div>
         <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-[#8B857B]">
           Collaborators
+        </p>
+
+        <p className="mb-2 text-[10px] leading-4 text-[#55514B]">
+          Shown for reference — manage actual
+          team membership from the Team tab.
         </p>
 
         <div className="space-y-2">
@@ -2110,23 +1300,90 @@ function SharedView() {
   );
 }
 
-function ArchiveView() {
-  return (
-    <SimpleSection
-      label="Sutradhara / Archive"
-      title="Archive"
-      description="Archived workspaces will live here when you are ready to put an idea aside."
-    />
-  );
-}
+type ArchiveViewProps = {
+  projects: Project[];
+  isProjectsLoading: boolean;
+  onOpenProject: (
+    id: string,
+  ) => void;
+  onDeleteProject: (
+    id: string,
+  ) => Promise<void>;
+};
 
-function TeamView() {
+function ArchiveView({
+  projects,
+  isProjectsLoading,
+  onOpenProject,
+  onDeleteProject,
+}: ArchiveViewProps) {
+  const archivedProjects =
+    projects.filter(
+      (project) =>
+        project.status === "ARCHIVED",
+    );
+
   return (
-    <SimpleSection
-      label="Sutradhara / Team"
-      title="Your team"
-      description="Bring collaborators into your workspace and build ideas together."
-    />
+    <section className="min-w-0 overflow-hidden bg-[#090B0A]">
+      <div className="h-full overflow-y-auto px-8 py-8">
+        <div className="mx-auto max-w-[1120px]">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#A9854F]">
+              Sutradhara / Archive
+            </p>
+
+            <h1 className="mt-3 font-serif text-[32px] text-[#F0E6D2]">
+              Archive
+            </h1>
+
+            <p className="mt-2 text-[13px] text-[#77736B]">
+              Archived workspaces will stay
+              here until you are ready to
+              return to them.
+            </p>
+          </div>
+
+          <div className="mt-8">
+            {isProjectsLoading ? (
+              <ProjectsLoading />
+            ) : archivedProjects.length ===
+              0 ? (
+              <div className="rounded-2xl border border-dashed border-[#A9854F]/15 bg-[#0E100F] px-6 py-12 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-[#A9854F]/15 bg-[#171A17]">
+                  <ThreadIcon />
+                </div>
+
+                <h3 className="mt-5 text-[15px] font-medium text-[#D6CBB9]">
+                  No archived projects
+                </h3>
+
+                <p className="mx-auto mt-2 max-w-[420px] text-[11px] leading-5 text-[#6F6B64]">
+                  Projects you archive will
+                  appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {archivedProjects.map(
+                  (project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onOpenProject={
+                        onOpenProject
+                      }
+                      onDeleteProject={
+                        onDeleteProject
+                      }
+                    />
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

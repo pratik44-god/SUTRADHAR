@@ -86,5 +86,27 @@ export const authRouter = router({
         profileImageUrl
       }
       
-  })
-});
+  }),
+  getUserByEmail: authenticatedProcedure
+  .meta({openapi: {
+    method: "GET",
+    path: getPath("/getUserByEmail"),
+    tags: TAGS
+  }})
+  .input(z.object({
+    email: z.string().email()
+  }))
+  .output(getUserByIdOutputModel)
+  .mutation(async ({input}) => {
+      const {id, fullName, email, profileImageUrl} = await userService.getUserByEmail(input.email)
+      return{
+        id,
+        fullName,
+        email,
+        profileImageUrl
+      }
+      
+  }),
+
+})
+

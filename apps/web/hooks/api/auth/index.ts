@@ -79,9 +79,33 @@ export const useLogout = () => {
   }
 }
 export const useUser = () => {
-    const {data: user, error, isFetched, isFetching, isLoading, status} = trpc.auth.getUserById.useQuery()
+    const {data: user, error, isFetched, isFetching, isLoading, status, isError,
+    isSuccess,} = trpc.auth.getUserById.useQuery()
 
     return { 
-        user, error, isFetched, isFetching, isLoading, status
+        user, error, isFetched, isFetching, isLoading, status, isError,
+    isSuccess,
     }
-}
+  }
+
+export const useGetUserByEmail = () => {
+  const {
+    mutateAsync: getUserByEmailAsync,
+    mutate: getUserByEmail,
+    data: user,
+    error,
+    isError,
+    isSuccess,
+    status,
+  } = trpc.auth.getUserByEmail.useMutation();
+
+  return {
+    getUserByEmailAsync,
+    getUserByEmail,
+    user,
+    error,
+    isError,
+    isSuccess,
+    status,
+  };
+};
