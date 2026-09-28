@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -35,12 +34,9 @@ const STYLE_OPTIONS: { value: StrokeStyle; label: string }[] = [
 
 const WEIGHT_OPTIONS = [1, 2, 3, 4] as const;
 
-type ArrowHeadStyle = "normal" | "hollow" | "open";
-
-const ARROW_TYPE_OPTIONS: { value: ArrowHeadStyle; label: string }[] = [
-  { value: "normal", label: "Normal" },
-  { value: "hollow", label: "Hollow triangle" },
-  { value: "open", label: "→" },
+const ARROW_TYPE_OPTIONS: { value: "arrow" | "hollowArrow"; label: string }[] = [
+  { value: "arrow", label: "Normal" },
+  { value: "hollowArrow", label: "Hollow" },
 ];
 
 const TYPE_LABELS: Record<string, string> = {
@@ -105,7 +101,7 @@ function ShapeInspector({
   const connector = isConnectorType(shape.type);
   const arrowConnector = shape.type === "arrow" || shape.type === "hollowArrow";
   const freehand = shape.type === "draw";
-  const fixedSize = false;
+  const fixedSize = shape.type === "actor";
   const size = getShapeSize(shape);
 
   const style = shape.strokeStyle ?? "solid";
@@ -156,35 +152,18 @@ function ShapeInspector({
           <div
             role="group"
             aria-label="Arrow type"
-            className="grid grid-cols-3 gap-1 rounded-xl border border-[#2A2118] bg-[#0F0D0A] p-1"
+            className="grid grid-cols-2 gap-1 rounded-xl border border-[#2A2118] bg-[#0F0D0A] p-1"
           >
-            {ARROW_TYPE_OPTIONS.map((option) => {
-              const currentStyle =
-                shape.metadata?.arrowHead === "hollow" || shape.type === "hollowArrow"
-                  ? "hollow"
-                  : shape.metadata?.arrowHead === "open"
-                    ? "open"
-                    : "normal";
-
-              return (
-                <SegmentButton
-                  key={option.value}
-                  active={currentStyle === option.value}
-                  onClick={() =>
-                    update({
-                      type: "arrow",
-                      metadata: {
-                        ...(shape.metadata ?? {}),
-                        arrowHead: option.value,
-                      },
-                    })
-                  }
-                >
-                  <ArrowTypeGlyph style={option.value} />
-                  <span className="text-center leading-tight">{option.label}</span>
-                </SegmentButton>
-              );
-            })}
+            {ARROW_TYPE_OPTIONS.map((option) => (
+              <SegmentButton
+                key={option.value}
+                active={shape.type === option.value}
+                onClick={() => update({ type: option.value })}
+              >
+                <ArrowTypeGlyph hollow={option.value === "hollowArrow"} />
+                <span>{option.label}</span>
+              </SegmentButton>
+            ))}
           </div>
         </Section>
       )}
@@ -239,7 +218,7 @@ function ShapeInspector({
                     label="Height"
                     value={Math.round(size.height)}
                     min={20}
-                    disabled={false}
+                    disabled={fixedSize}
                     onCommit={(height) => update({ height })}
                   />
                 </>
@@ -394,6 +373,39 @@ function SegmentButton({
   );
 }
 
+function ArrowTypeGlyph({ hollow }: { hollow: boolean }) {
+  return (
+    <svg width="32" height="16" viewBox="0 0 32 16" aria-hidden="true">
+      <line
+        x1="3"
+        y1="8"
+        x2="24"
+        y2="8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      {hollow ? (
+        <path
+          d="M22 3 L30 8 L22 13 Z"
+          fill="#0F0D0A"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <path
+          d="M22 3 L30 8 L22 13 Z"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
+  );
+}
+
 function StyleGlyph({ style }: { style: StrokeStyle }) {
   const dash =
     style === "dashed" ? "5 3.5" : style === "dotted" ? "0.1 4.5" : undefined;
@@ -410,33 +422,6 @@ function StyleGlyph({ style }: { style: StrokeStyle }) {
         strokeLinecap={style === "dotted" ? "round" : "butt"}
         strokeDasharray={dash}
       />
-    </svg>
-  );
-}
-
-function ArrowTypeGlyph({ style }: { style: ArrowHeadStyle }) {
-  if (style === "hollow") {
-    return (
-      <svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true">
-        <line x1="3" y1="8" x2="25" y2="8" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M25 3l6 5-6 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  if (style === "open") {
-    return (
-      <svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true">
-        <line x1="3" y1="8" x2="26" y2="8" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M21 3l7 5-7 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true">
-      <line x1="3" y1="8" x2="25" y2="8" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M24 3l7 5-7 5z" fill="currentColor" stroke="currentColor" strokeWidth="1" />
     </svg>
   );
 }

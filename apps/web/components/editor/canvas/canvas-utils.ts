@@ -1,4 +1,3 @@
-
 // import type {
 //   CanvasField,
 //   CanvasShape,
@@ -72,7 +71,7 @@
 // /* -------------------------------------------------------------------------- */
 
 // export const isConnectorType = (type: string): boolean =>
-//   type === "line" || type === "arrow" || type === "message";
+//   type === "line" || type === "arrow" || type === "hollowArrow" || type === "message";
 
 // /** Every tool except "select" and "hand" creates a shape. */
 // export const isDrawableTool = (tool: CanvasTool): tool is CanvasShapeType =>
@@ -206,8 +205,6 @@
 // /** Resolved box size, including auto-growth for tables and classes. */
 // export function getShapeSize(shape: CanvasShape): Size {
 //   const fallback = getDefaultSize(shape.type);
-
-//   if (shape.type === "actor") return ACTOR_SIZE;
 
 //   const width = shape.width ?? fallback.width;
 //   let height = shape.height ?? fallback.height;
@@ -429,10 +426,6 @@
 //   const x = Math.min(start.x, end.x);
 //   const y = Math.min(start.y, end.y);
 
-//   if (type === "actor") {
-//     return buildBoxShape(type, x, y, ACTOR_SIZE.width, ACTOR_SIZE.height);
-//   }
-
 //   const min = getMinSize(type);
 //   const width = Math.max(Math.abs(end.x - start.x), min.width);
 //   const height =
@@ -567,7 +560,7 @@ const DEFAULT_FIELDS: CanvasField[] = [
 /* -------------------------------------------------------------------------- */
 
 export const isConnectorType = (type: string): boolean =>
-  type === "line" || type === "arrow" || type === "message";
+  type === "line" || type === "arrow" || type === "hollowArrow" || type === "message";
 
 /** Every tool except "select" and "hand" creates a shape. */
 export const isDrawableTool = (tool: CanvasTool): tool is CanvasShapeType =>
@@ -702,8 +695,6 @@ export const getDatabaseCap = (height: number): number =>
 export function getShapeSize(shape: CanvasShape): Size {
   const fallback = getDefaultSize(shape.type);
 
-  if (shape.type === "actor") return ACTOR_SIZE;
-
   const width = shape.width ?? fallback.width;
   let height = shape.height ?? fallback.height;
 
@@ -799,7 +790,9 @@ export function getLabelBox(shape: CanvasShape): Bounds {
       return { x: 0, y: 0, width, height: LIFELINE_HEADER_HEIGHT };
 
     case "actor":
-      return { x: 0, y: ACTOR_SIZE.height - 16, width, height: 16 };
+      // Reserve the bottom strip for the actor name so it stays in the
+      // previous lower position when the actor is resized.
+      return { x: 0, y: Math.max(0, height - 22), width, height: 18 };
 
     case "database": {
       const cap = getDatabaseCap(height);
@@ -923,10 +916,6 @@ export function createShapeFromDrag(
 
   const x = Math.min(start.x, end.x);
   const y = Math.min(start.y, end.y);
-
-  if (type === "actor") {
-    return buildBoxShape(type, x, y, ACTOR_SIZE.width, ACTOR_SIZE.height);
-  }
 
   const min = getMinSize(type);
   const width = Math.max(Math.abs(end.x - start.x), min.width);

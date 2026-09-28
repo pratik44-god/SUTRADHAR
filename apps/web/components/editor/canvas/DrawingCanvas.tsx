@@ -19,7 +19,6 @@
 //   Point,
 //   Viewport,
 // } from "./canvas-types";
-// import { DEFAULT_STROKE } from "./canvas-types";
 // import {
 //   DRAG_THRESHOLD_PX,
 //   MIN_CONNECTOR_LENGTH,
@@ -95,7 +94,7 @@
 // const MAX_DRAW_POINTS = 400;
 // const MIN_SCALE = 0.15;
 // const MAX_SCALE = 4;
-// const ZOOM_SENSITIVITY = 0.005;
+// const ZOOM_STEP = 1.08;
 // const DUPLICATE_OFFSET = 24;
 
 // const readHistoryFlags = ({ stack, index }: HistoryStack): HistoryState => ({
@@ -107,6 +106,54 @@
 //   x: (screen.x - viewport.x) / viewport.scale,
 //   y: (screen.y - viewport.y) / viewport.scale,
 // });
+
+// function getConnectorLabelPoint(shape: CanvasShape): Point {
+//   const start = { x: shape.x, y: shape.y };
+//   const end = {
+//     x: shape.x2 ?? shape.x,
+//     y: shape.y2 ?? shape.y,
+//   };
+
+//   const path = shape.bend
+//     ? [
+//         start,
+//         shape.bend,
+//         end,
+//       ]
+//     : [start, end];
+
+//   let totalLength = 0;
+//   for (let index = 1; index < path.length; index += 1) {
+//     const current = path[index] ?? { x: 0, y: 0 };
+//     const previous = path[index - 1] ?? { x: 0, y: 0 };
+//     totalLength += Math.hypot(
+//       current.x - previous.x,
+//       current.y - previous.y,
+//     );
+//   }
+
+//   let remaining = totalLength / 2;
+//   for (let index = 1; index < path.length; index += 1) {
+//     const from = path[index - 1] ?? { x: 0, y: 0 };
+//     const to = path[index] ?? { x: 0, y: 0 };
+//     const length = Math.hypot(to.x - from.x, to.y - from.y);
+
+//     if (remaining <= length) {
+//       const ratio = length === 0 ? 0 : remaining / length;
+//       return {
+//         x: from.x + (to.x - from.x) * ratio,
+//         y: from.y + (to.y - from.y) * ratio,
+//       };
+//     }
+
+//     remaining -= length;
+//   }
+
+//   return {
+//     x: (start.x + end.x) / 2,
+//     y: (start.y + end.y) / 2,
+//   };
+// }
 
 // /** Walks up from a hit node to the top-level shape group under the layer. */
 // function findShapeId(target: Konva.Node, stage: Konva.Stage): string | null {
@@ -121,8 +168,7 @@
 //   }
 
 //   const id = node?.id();
-//   // The selection UI overlay group is id'd `<shapeId>:ui`.
-//   return id && id !== "preview" ? id.replace(/:ui$/, "") : null;
+//   return id && id !== "preview" ? id : null;
 // }
 
 // /* -------------------------------------------------------------------------- */
@@ -310,7 +356,7 @@
 //     const startEditing = useCallback(
 //       (id: string) => {
 //         const shape = shapesRef.current.find((item) => item.id === id);
-//         if (!shape || !isEditableType(shape.type)) return;
+//         if (!shape || (!isEditableType(shape.type) && !isConnectorType(shape.type))) return;
 
 //         select(id);
 //         setEditingId(id);
@@ -362,12 +408,33 @@
 
 //     const handleEndpointDragEnd = useCallback(
 //       (id: string, start: Point, end: Point) => {
+//         const current = shapesRef.current.find((item) => item.id === id);
+//         const currentBend = current?.bend;
+
+//         let bend: Point | undefined;
+//         if (currentBend) {
+//           const horizontalFirst = Math.abs(currentBend.y - (current?.y ?? start.y)) < 10;
+//           if (horizontalFirst) {
+//             bend = { x: currentBend.x, y: start.y };
+//           } else {
+//             bend = { x: start.x, y: currentBend.y };
+//           }
+//         }
+
 //         updateShape(id, {
 //           x: start.x,
 //           y: start.y,
 //           x2: end.x,
 //           y2: end.y,
+//           bend,
 //         });
+//       },
+//       [updateShape],
+//     );
+
+//     const handleBendDragEnd = useCallback(
+//       (id: string, bend: Point | undefined) => {
+//         updateShape(id, { bend });
 //       },
 //       [updateShape],
 //     );
@@ -555,11 +622,6 @@
 //       [applyViewport],
 //     );
 
-//     /**
-//      * Wheel / two-finger swipe scrolls the canvas.
-//      * Ctrl/Cmd + wheel (or trackpad pinch, which browsers report with ctrlKey) zooms.
-//      * Shift + wheel scrolls sideways.
-//      */
 //     const handleWheel = useCallback(
 //       (event: Konva.KonvaEventObject<WheelEvent>) => {
 //         event.evt.preventDefault();
@@ -568,33 +630,33 @@
 //         if (!pointer) return;
 
 //         const current = viewportRef.current;
-//         const { ctrlKey, metaKey, shiftKey, deltaMode } = event.evt;
-//         const unit = deltaMode === 1 ? 16 : 1; // Firefox reports lines
-//         let deltaX = event.evt.deltaX * unit;
-//         let deltaY = event.evt.deltaY * unit;
+//         const native = event.evt;
 
-//         // Zoom
-//         if (ctrlKey || metaKey) {
-//           const factor = Math.exp(-clamp(deltaY, -60, 60) * ZOOM_SENSITIVITY);
-//           const scale = clamp(current.scale * factor, MIN_SCALE, MAX_SCALE);
-//           if (scale === current.scale) return;
+//         // Normal wheel = scroll/pan the infinite canvas.
+//         // Ctrl/Cmd/Alt + wheel = zoom around the mouse pointer.
+//         const shouldZoom = native.ctrlKey || native.metaKey || native.altKey;
 
-//           const anchor = toWorld(pointer, current);
+//         if (!shouldZoom) {
 //           applyViewport({
-//             scale,
-//             x: pointer.x - anchor.x * scale,
-//             y: pointer.y - anchor.y * scale,
+//             ...current,
+//             x: current.x - native.deltaX,
+//             y: current.y - native.deltaY,
 //           });
 //           return;
 //         }
 
-//         // Scroll
-//         if (shiftKey && deltaX === 0) {
-//           deltaX = deltaY;
-//           deltaY = 0;
-//         }
+//         const factor = native.deltaY > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
+//         const scale = clamp(current.scale * factor, MIN_SCALE, MAX_SCALE);
 
-//         applyViewport({ ...current, x: current.x - deltaX, y: current.y - deltaY });
+//         if (scale === current.scale) return;
+
+//         const anchor = toWorld(pointer, current);
+
+//         applyViewport({
+//           scale,
+//           x: pointer.x - anchor.x * scale,
+//           y: pointer.y - anchor.y * scale,
+//         });
 //       },
 //       [applyViewport],
 //     );
@@ -778,6 +840,7 @@
 //                 onEndpointDragEnd={handleEndpointDragEnd}
 //                 onEdit={startEditing}
 //                 onDelete={deleteShape}
+//                 onBendDragEnd={handleBendDragEnd}
 //               />
 //             ))}
 
@@ -819,17 +882,6 @@
 //   onCancel: () => void;
 // };
 
-// const EDITOR_FONT = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif";
-// let measureCtx: CanvasRenderingContext2D | null = null;
-
-// function measureText(text: string, font: string): number {
-//   if (typeof document === "undefined") return text.length * 8;
-//   measureCtx ??= document.createElement("canvas").getContext("2d");
-//   if (!measureCtx) return text.length * 8;
-//   measureCtx.font = font;
-//   return measureCtx.measureText(text).width;
-// }
-
 // function InlineTextEditor({
 //   shape,
 //   viewport,
@@ -847,28 +899,27 @@
 
 //   const box = getLabelBox(shape);
 //   const scale = viewport.scale;
+//   const isConnector = isConnectorType(shape.type);
+//   const connectorLabel = isConnector
+//     ? getConnectorLabelPoint(shape)
+//     : null;
 //   const fontSize = getFontSize(shape) * scale;
 //   const lineHeight = 1.25;
-//   const bold =
-//     shape.type === "table" || shape.type === "class" || shape.type === "interface";
-//   const font = `${bold ? 700 : 400} ${fontSize}px ${EDITOR_FONT}`;
+//   const isPlainText = shape.type === "text";
 
-//   const PAD_X = 4;
-//   const PAD_Y = 2;
-//   const lines = value.split("\n");
-//   const textWidth = Math.max(...lines.map((line) => measureText(line || " ", font)));
-//   const width = clamp(
-//     textWidth + PAD_X * 2 + 4,
-//     fontSize * 2,
-//     Math.max(box.width * scale, fontSize * 3),
-//   );
-//   const height = lines.length * fontSize * lineHeight + PAD_Y * 2;
+//   // Text is a label, not a 160x28 rectangle. Keep the editor tightly
+//   // wrapped around the actual text while other shapes keep their label area.
+//   const editorWidth = isPlainText
+//     ? Math.max(24, Math.min(520, Math.max(1, value.length) * fontSize * 0.58 + 8))
+//     : isConnector
+//       ? Math.max(72, Math.min(260, Math.max(1, value.length) * fontSize * 0.58 + 18))
+//       : Math.max(box.width * scale, 72);
 
-//   // Centre on the label area, exactly where the canvas text is drawn.
-//   const left = viewport.x + (shape.x + box.x + box.width / 2) * scale - width / 2;
-//   const top = viewport.y + (shape.y + box.y + box.height / 2) * scale - height / 2;
-
-//   const color = shape.type === "text" ? (shape.stroke ?? DEFAULT_STROKE) : "#D6C4A3";
+//   const editorHeight = isPlainText
+//     ? fontSize * lineHeight + 4
+//     : isConnector
+//       ? fontSize * lineHeight + 8
+//       : Math.max(box.height * scale, fontSize * lineHeight + 8);
 
 //   const finish = (save: boolean) => {
 //     if (doneRef.current) return;
@@ -886,8 +937,6 @@
 //       aria-label="Edit label"
 //       ref={inputRef}
 //       value={value}
-//       rows={lines.length}
-//       wrap="off"
 //       spellCheck={false}
 //       onChange={(event) => setValue(event.target.value)}
 //       onBlur={() => finish(true)}
@@ -902,25 +951,26 @@
 //           finish(false);
 //         }
 //       }}
-//       className="absolute z-20 m-0 block resize-none overflow-hidden whitespace-pre border-0 bg-transparent"
+//       className="absolute z-20 resize-none border-0 bg-transparent text-[#F0E6D2] outline-none"
 //       style={{
-//         left,
-//         top,
-//         width,
-//         height,
-//         boxSizing: "border-box",
-//         padding: `${PAD_Y}px ${PAD_X}px`,
-//         font,
+//         left: isConnector && connectorLabel
+//           ? viewport.x + connectorLabel.x * scale - editorWidth / 2
+//           : viewport.x + (shape.x + box.x) * scale - (isPlainText ? 4 : 0),
+//         top: isConnector && connectorLabel
+//           ? viewport.y + connectorLabel.y * scale - editorHeight / 2
+//           : viewport.y + (shape.y + box.y) * scale - (isPlainText ? 2 : 0),
+//         width: editorWidth,
+//         height: editorHeight,
+//         fontSize,
 //         lineHeight,
 //         textAlign: getLabelAlign(shape),
-//         color,
-//         caretColor: color,
-//         outline: "1px dashed rgba(198,154,91,0.55)",
-//         borderRadius: 3,
+//         padding: 0,
+//         overflow: "hidden",
 //       }}
 //     />
 //   );
 // }
+
 
 "use client";
 
@@ -1030,6 +1080,54 @@ const toWorld = (screen: Point, viewport: Viewport): Point => ({
   x: (screen.x - viewport.x) / viewport.scale,
   y: (screen.y - viewport.y) / viewport.scale,
 });
+
+function getConnectorLabelPoint(shape: CanvasShape): Point {
+  const start = { x: shape.x, y: shape.y };
+  const end = {
+    x: shape.x2 ?? shape.x,
+    y: shape.y2 ?? shape.y,
+  };
+
+  const path = shape.bend
+    ? [
+        start,
+        shape.bend,
+        end,
+      ]
+    : [start, end];
+
+  let totalLength = 0;
+  for (let index = 1; index < path.length; index += 1) {
+    const current = path[index] ?? { x: 0, y: 0 };
+    const previous = path[index - 1] ?? { x: 0, y: 0 };
+    totalLength += Math.hypot(
+      current.x - previous.x,
+      current.y - previous.y,
+    );
+  }
+
+  let remaining = totalLength / 2;
+  for (let index = 1; index < path.length; index += 1) {
+    const from = path[index - 1] ?? { x: 0, y: 0 };
+    const to = path[index] ?? { x: 0, y: 0 };
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+
+    if (remaining <= length) {
+      const ratio = length === 0 ? 0 : remaining / length;
+      return {
+        x: from.x + (to.x - from.x) * ratio,
+        y: from.y + (to.y - from.y) * ratio,
+      };
+    }
+
+    remaining -= length;
+  }
+
+  return {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2,
+  };
+}
 
 /** Walks up from a hit node to the top-level shape group under the layer. */
 function findShapeId(target: Konva.Node, stage: Konva.Stage): string | null {
@@ -1232,7 +1330,7 @@ export default forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
     const startEditing = useCallback(
       (id: string) => {
         const shape = shapesRef.current.find((item) => item.id === id);
-        if (!shape || !isEditableType(shape.type)) return;
+        if (!shape || (!isEditableType(shape.type) && !isConnectorType(shape.type))) return;
 
         select(id);
         setEditingId(id);
@@ -1284,12 +1382,26 @@ export default forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
 
     const handleEndpointDragEnd = useCallback(
       (id: string, start: Point, end: Point) => {
+        const current = shapesRef.current.find((item) => item.id === id);
+        if (!current) return;
+
+        // Move only the endpoint that was dragged. The opposite endpoint and
+        // the existing bend stay exactly where they were; this prevents the
+        // back handle from jumping while the arrow is being edited.
         updateShape(id, {
           x: start.x,
           y: start.y,
           x2: end.x,
           y2: end.y,
+          bend: current.bend,
         });
+      },
+      [updateShape],
+    );
+
+    const handleBendDragEnd = useCallback(
+      (id: string, bend: Point | undefined) => {
+        updateShape(id, { bend });
       },
       [updateShape],
     );
@@ -1695,6 +1807,7 @@ export default forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(
                 onEndpointDragEnd={handleEndpointDragEnd}
                 onEdit={startEditing}
                 onDelete={deleteShape}
+                onBendDragEnd={handleBendDragEnd}
               />
             ))}
 
@@ -1753,6 +1866,10 @@ function InlineTextEditor({
 
   const box = getLabelBox(shape);
   const scale = viewport.scale;
+  const isConnector = isConnectorType(shape.type);
+  const connectorLabel = isConnector
+    ? getConnectorLabelPoint(shape)
+    : null;
   const fontSize = getFontSize(shape) * scale;
   const lineHeight = 1.25;
   const isPlainText = shape.type === "text";
@@ -1761,11 +1878,15 @@ function InlineTextEditor({
   // wrapped around the actual text while other shapes keep their label area.
   const editorWidth = isPlainText
     ? Math.max(24, Math.min(520, Math.max(1, value.length) * fontSize * 0.58 + 8))
-    : Math.max(box.width * scale, 72);
+    : isConnector
+      ? Math.max(72, Math.min(260, Math.max(1, value.length) * fontSize * 0.58 + 18))
+      : Math.max(box.width * scale, 72);
 
   const editorHeight = isPlainText
     ? fontSize * lineHeight + 4
-    : Math.max(box.height * scale, fontSize * lineHeight + 8);
+    : isConnector
+      ? fontSize * lineHeight + 8
+      : Math.max(box.height * scale, fontSize * lineHeight + 8);
 
   const finish = (save: boolean) => {
     if (doneRef.current) return;
@@ -1799,8 +1920,12 @@ function InlineTextEditor({
       }}
       className="absolute z-20 resize-none border-0 bg-transparent text-[#F0E6D2] outline-none"
       style={{
-        left: viewport.x + (shape.x + box.x) * scale - (isPlainText ? 4 : 0),
-        top: viewport.y + (shape.y + box.y) * scale - (isPlainText ? 2 : 0),
+        left: isConnector && connectorLabel
+          ? viewport.x + connectorLabel.x * scale - editorWidth / 2
+          : viewport.x + (shape.x + box.x) * scale - (isPlainText ? 4 : 0),
+        top: isConnector && connectorLabel
+          ? viewport.y + connectorLabel.y * scale - editorHeight / 2
+          : viewport.y + (shape.y + box.y) * scale - (isPlainText ? 2 : 0),
         width: editorWidth,
         height: editorHeight,
         fontSize,
